@@ -18,27 +18,41 @@ namespace TSEg31Project
             database + ";" + "UID=" + uid + ";" + "PASSWORD=" + password + ";";
             MySqlConnection connection = new MySqlConnection(connectionString);
             connection.Open();
-
-            List<int> regionCrimeTotals = new List<int>();
-            List<int> regionalTotalSpending = new List<int>();
-            retrieveIntData(connection, "select * from regioncrimetotal",regionCrimeTotals);
-            retrieveIntData(connection, "select * from regiontotalspending", regionalTotalSpending);
-
+            
+            List<long> regionCrimeTotals = new List<long>();
+            List<long> regionalTotalSpendinginMillions = new List<long>();
+            List<long> regionalTotalSpending = new List<long>();
+            retrieveData(connection, "select * from regioncrimetotal",regionCrimeTotals,1);
+            retrieveData(connection, "select * from regiontotalspending", regionalTotalSpendinginMillions,1);
+            for(int i = 0; i < regionalTotalSpendinginMillions.Count(); i++)
+            {
+                regionalTotalSpending.Add(regionalTotalSpendinginMillions[i] * 1000000);
+            }
             double correlation = calculateCorrelationCoefficient(regionCrimeTotals, regionalTotalSpending);
 
+            List<long> regionalPopulations = new List<long>();
+            retrieveData(connection, "select * from regiontotalpop", regionalPopulations,1);
+            long totalPop = sumLongList(regionalPopulations);
+            long totalSpending = sumLongList(regionalTotalSpending);
+            float countryPopSpending = totalSpending / totalPop;
+            List<float> regionalPopSpending = new List<float>();
+            for (int i = 0; i < regionalTotalSpending.Count(); i++)
+            {
+                regionalPopSpending.Add(regionalTotalSpending[i] / regionalPopulations[i]);
+            }
         }
-        static void retrieveIntData(MySqlConnection connection, string query, List<int> listOfValues)
+        static void retrieveData(MySqlConnection connection, string query, List<long> listOfValues, int pos)
         {
             MySqlCommand command = new MySqlCommand(query,connection);
             MySqlDataReader reader = command.ExecuteReader();
             while(reader.Read())
             {
-                listOfValues.Add((int)reader[1]);
+                listOfValues.Add((int)reader[pos]);
             }
             reader.Close();
         }
 
-        static double calculateCorrelationCoefficient(List<int> x, List<int> y)
+        static double calculateCorrelationCoefficient(List<long> x, List<long> y)
         {
             List<float> differencesX = new List<float>();
             List<float> differencesY = new List<float>();
@@ -54,15 +68,15 @@ namespace TSEg31Project
                 sumOfDifferences += differencesX[i] * differencesY[i];
             }
 
-            float sumOfSquaredX = sumList(differencesSquaredX);
-            float sumOfSquaredY = sumList(differencesSquaredY);
+            float sumOfSquaredX = sumFloatList(differencesSquaredX);
+            float sumOfSquaredY = sumFloatList(differencesSquaredY);
 
             double correlationCoefficient = sumOfDifferences / Math.Sqrt(sumOfSquaredX * sumOfSquaredY);
             return correlationCoefficient;
         }
-        static void calculateValues(List<int> list, List<float> differences, List<float> differencesSquared)
+        static void calculateValues(List<long> list, List<float> differences, List<float> differencesSquared)
         {
-            int total = 0;
+            long total = 0;
             foreach(int x in list)
             {
                 total += x;
@@ -79,10 +93,19 @@ namespace TSEg31Project
                 differencesSquared.Add(x * x);
             }
         }
-        static float sumList(List<float> listOfNums)
+        static float sumFloatList(List<float> listOfNums)
         {
             float total = 0;
             foreach(float num in listOfNums)
+            {
+                total += num;
+            }
+            return total;
+        }
+        static long sumLongList(List<long> listOfNums)
+        {
+            long total = 0;
+            foreach (long num in listOfNums)
             {
                 total += num;
             }
