@@ -95,6 +95,7 @@ namespace TSEg31Project
             {
                 regionNames.Add((string)reader[1]);
             }
+            reader.Close();
             return regionNames;
         }
         // Function to calculate the correlation coefficient with two sets of data
