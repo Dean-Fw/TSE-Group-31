@@ -18,6 +18,59 @@ namespace TSEg31Project
             connectionString = "SERVER=" + server + ";" + "DATABASE=" + database + ";" + "UID=" + uid + ";" + "PASSWORD=" + password + ";";
             MySqlConnection connection = new MySqlConnection(connectionString);
             connection.Open();
+
+            int menuOption = -1;
+            // While the user doesn't want to quit, the menu will be re-displayed 
+            while(menuOption != 0)
+            {
+                Console.WriteLine("");
+                Console.WriteLine("Type the number next to the data analysis method to perform it:");
+                Console.WriteLine("1) Population Density");
+                Console.WriteLine("2) Correlation between population density and crime rate");
+                Console.WriteLine("3) Population spending");
+                Console.WriteLine("4) Correlation between spending and crime rate");
+                Console.WriteLine("0) Quit");
+                // Use a function to get and validate the input from the user
+                getIntInput getInt = new getIntInput();
+                menuOption = getInt.GetIntInput(4);
+                Console.WriteLine("");
+                // Choose the correct function to run depending on user input
+                if(menuOption == 1)
+                {
+                    // Create lists to store the values and then use the function to  get it
+                    List<long> populationDensityList = getPopulationDensity(connection);
+                    List<string> regionNames = getRegionNames(connection);
+                    // Display the values to the user 
+                    for(int i = 0; i < populationDensityList.Count(); i++)
+                    {
+                        Console.WriteLine($"{regionNames[i]}: {populationDensityList[i]}");
+                    }
+                }
+                else if(menuOption == 2)
+                {
+                    getPopDensityAndCrimeRateCorrelation(connection);
+                }
+                else if(menuOption == 3)
+                {
+                    // Let the user choose which stat they want to see, get it and then display it
+                    Console.WriteLine("Would you like to see the population spending for England or by region?");
+                    Console.WriteLine("Enter 0 for England and 1 to get it by region");
+                    int levelOption = getInt.GetIntInput(1);
+                    
+                    if(levelOption == 0)
+                    {
+                        getPopSpending(connection,0);
+                    }
+                    else
+                    {
+                        getPopSpending(connection, 1);
+                    }
+                }
+                else if(menuOption == 4)
+                {
+                    getSpendingAndCrimeRateCorrelation(connection);
+                }
+            }
             
         }
         // Function to retrieve data from the database and put it into a list
@@ -31,6 +84,18 @@ namespace TSEg31Project
                 listOfValues.Add((int)reader[pos]);
             }
             reader.Close();
+        }
+        // Function to get the names of the regions to be used as part of the UI
+        static List<string> getRegionNames(MySqlConnection connection)
+        {
+            MySqlCommand command = new MySqlCommand("select * from regionname", connection);
+            MySqlDataReader reader = command.ExecuteReader();
+            List<string> regionNames = new List<string>();
+            while(reader.Read())
+            {
+                regionNames.Add((string)reader[1]);
+            }
+            return regionNames;
         }
         // Function to calculate the correlation coefficient with two sets of data
         static double calculateCorrelationCoefficient(List<long> x, List<long> y)
@@ -70,7 +135,7 @@ namespace TSEg31Project
             float mean = total / list.Count();
 
             // Each element subtracts the mean and this value is added to a new list
-            foreach(int x in list)
+            foreach(int x in list) 
             {
                 differences.Add(x - mean);
             }
@@ -116,9 +181,10 @@ namespace TSEg31Project
             retrieveData(connection, "select * from regioncrimetotal", regionCrimeTotals, 1);
             List<long> regionPopDensity = getPopulationDensity(connection);
             double correlation = calculateCorrelationCoefficient(regionCrimeTotals, regionPopDensity);
+            Console.WriteLine($"The correlation coefficient for population density and crime rate is: {correlation}");
         }
         // Function to get population spending for both regionally and the country
-        static void getPopSpending(MySqlConnection connection)
+        static void getPopSpending(MySqlConnection connection, int level)
         {
             // The spending values are in millions in the database so they are got first and then converted to their actual values
             List<long> regionalTotalSpendinginMillions = new List<long>();
@@ -133,13 +199,25 @@ namespace TSEg31Project
             // Both lists are summed
             long totalPop = sumLongList(regionalPopulations);
             long totalSpending = sumLongList(regionalTotalSpending);
-            // Population spending for England is calculated
-            float countryPopSpending = totalSpending / totalPop;
-            // Regional population spending is calculated for each region and added to a list
-            List<float> regionalPopSpending = new List<float>();
-            for (int i = 0; i < regionalTotalSpending.Count(); i++)
+            // Give the user the correct stat depending on what they chose
+            if(level == 0)
             {
-                regionalPopSpending.Add(regionalTotalSpending[i] / regionalPopulations[i]);
+                float countryPopSpending = totalSpending / totalPop;
+                Console.WriteLine($"The population spending for England is: £{countryPopSpending}");
+            }
+            else
+            {
+                // Regional population spending is calculated for each region and added to a list
+                List<float> regionalPopSpending = new List<float>();
+                List<string> regionNames = getRegionNames(connection);
+                for (int i = 0; i < regionalTotalSpending.Count(); i++)
+                {
+                    regionalPopSpending.Add(regionalTotalSpending[i] / regionalPopulations[i]);
+                }
+                for (int i = 0; i < regionalPopSpending.Count(); i++)
+                {
+                    Console.WriteLine($"{regionNames[i]}: £{regionalPopSpending[i]}");
+                }
             }
         }
         // Function to get the correlation between spending and crime rate in the regions
@@ -157,6 +235,7 @@ namespace TSEg31Project
                 regionalTotalSpending.Add(regionalTotalSpendinginMillions[i] * 1000000);
             }
             double correlation = calculateCorrelationCoefficient(regionCrimeTotals, regionalTotalSpending);
+            Console.WriteLine($"The correlation coefficient for spending and crime rate is: {correlation}");
         }
     }
 }
