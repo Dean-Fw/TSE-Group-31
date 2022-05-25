@@ -19,27 +19,6 @@ namespace TSEg31Project
             MySqlConnection connection = new MySqlConnection(connectionString);
             connection.Open();
             
-            List<long> regionCrimeTotals = new List<long>();
-            List<long> regionalTotalSpendinginMillions = new List<long>();
-            List<long> regionalTotalSpending = new List<long>();
-            retrieveData(connection, "select * from regioncrimetotal",regionCrimeTotals,1);
-            retrieveData(connection, "select * from regiontotalspending", regionalTotalSpendinginMillions,1);
-            for(int i = 0; i < regionalTotalSpendinginMillions.Count(); i++)
-            {
-                regionalTotalSpending.Add(regionalTotalSpendinginMillions[i] * 1000000);
-            }
-            double correlation = calculateCorrelationCoefficient(regionCrimeTotals, regionalTotalSpending);
-
-            List<long> regionalPopulations = new List<long>();
-            retrieveData(connection, "select * from regiontotalpop", regionalPopulations,1);
-            long totalPop = sumLongList(regionalPopulations);
-            long totalSpending = sumLongList(regionalTotalSpending);
-            float countryPopSpending = totalSpending / totalPop;
-            List<float> regionalPopSpending = new List<float>();
-            for (int i = 0; i < regionalTotalSpending.Count(); i++)
-            {
-                regionalPopSpending.Add(regionalTotalSpending[i] / regionalPopulations[i]);
-            }
         }
         static void retrieveData(MySqlConnection connection, string query, List<long> listOfValues, int pos)
         {
@@ -51,7 +30,6 @@ namespace TSEg31Project
             }
             reader.Close();
         }
-
         static double calculateCorrelationCoefficient(List<long> x, List<long> y)
         {
             List<float> differencesX = new List<float>();
@@ -110,6 +88,52 @@ namespace TSEg31Project
                 total += num;
             }
             return total;
+        }
+        static List<long> getPopulationDensity(MySqlConnection connection)
+        {
+            List<long> regionalPopDensity = new List<long>();
+            retrieveData(connection, "select * from regionpopdensity",regionalPopDensity,1);
+            return regionalPopDensity;
+        }
+        static void getPopDensityAndCrimeRateCorrelation(MySqlConnection connection)
+        {
+            List<long> regionCrimeTotals = new List<long>();
+            retrieveData(connection, "select * from regioncrimetotal", regionCrimeTotals, 1);
+            List<long> regionPopDensity = getPopulationDensity(connection);
+            double correlation = calculateCorrelationCoefficient(regionCrimeTotals, regionPopDensity);
+        }
+        static void getPopSpending(MySqlConnection connection)
+        {
+            List<long> regionalTotalSpendinginMillions = new List<long>();
+            List<long> regionalTotalSpending = new List<long>();
+            retrieveData(connection, "select * from regiontotalspending", regionalTotalSpendinginMillions,1);
+            for(int i = 0; i < regionalTotalSpendinginMillions.Count(); i++)
+            {
+                regionalTotalSpending.Add(regionalTotalSpendinginMillions[i] * 1000000);
+            }
+            List<long> regionalPopulations = new List<long>();
+            retrieveData(connection, "select * from regiontotalpop", regionalPopulations,1);
+            long totalPop = sumLongList(regionalPopulations);
+            long totalSpending = sumLongList(regionalTotalSpending);
+            float countryPopSpending = totalSpending / totalPop;
+            List<float> regionalPopSpending = new List<float>();
+            for (int i = 0; i < regionalTotalSpending.Count(); i++)
+            {
+                regionalPopSpending.Add(regionalTotalSpending[i] / regionalPopulations[i]);
+            }
+        }
+        static void getSpendingAndCrimeRateCorrelation(MySqlConnection connection)
+        {
+            List<long> regionCrimeTotals = new List<long>();
+            retrieveData(connection, "select * from regioncrimetotal",regionCrimeTotals,1);
+            List<long> regionalTotalSpendinginMillions = new List<long>();
+            List<long> regionalTotalSpending = new List<long>();
+            retrieveData(connection, "select * from regiontotalspending", regionalTotalSpendinginMillions, 1);
+            for (int i = 0; i < regionalTotalSpendinginMillions.Count(); i++)
+            {
+                regionalTotalSpending.Add(regionalTotalSpendinginMillions[i] * 1000000);
+            }
+            double correlation = calculateCorrelationCoefficient(regionCrimeTotals, regionalTotalSpending);
         }
     }
 }
